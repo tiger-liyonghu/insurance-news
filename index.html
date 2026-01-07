@@ -355,6 +355,11 @@
                     
                     if (response.status === 401) {
                         throw new Error(`API Key 无效或未授权。请检查您的 NewsAPI Key。错误详情: ${errorDetail}`);
+                    } else if (response.status === 403) {
+                        // 403 错误：NewsAPI 不允许从浏览器直接调用
+                        console.warn('NewsAPI 403: 使用模拟数据作为演示');
+                        await loadMockData();
+                        return;
                     } else if (response.status === 429) {
                         throw new Error('API 请求次数超限，请稍后再试');
                     } else {
@@ -400,7 +405,7 @@
                 console.error('加载新闻失败:', error);
                 
                 // 如果是网络错误，尝试切换代理
-                if (USE_PROXY && error.message.includes('Failed to fetch') || error.message.includes('Load failed')) {
+                if (USE_PROXY && (error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
                     currentProxyIndex++;
                     if (currentProxyIndex < CORS_PROXIES.length) {
                         errorMessageEl.textContent = `代理服务失败，正在尝试备用代理... (${currentProxyIndex + 1}/${CORS_PROXIES.length})`;
@@ -413,6 +418,13 @@
                     }
                 }
                 
+                // 如果所有代理都失败，尝试使用模拟数据
+                if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                    console.warn('NewsAPI 被阻止，使用模拟数据');
+                    await loadMockData();
+                    return;
+                }
+                
                 // 显示详细错误信息
                 let errorMsg = `加载失败: ${error.message}`;
                 if (error.message.includes('Failed to fetch') || error.message.includes('Load failed')) {
@@ -423,6 +435,136 @@
             } finally {
                 loadingEl.classList.add('hidden');
             }
+        }
+
+        // 加载模拟数据（当 NewsAPI 不可用时使用）
+        async function loadMockData() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const errorMessageEl = document.getElementById('errorMessage');
+            const newsContainer = document.getElementById('newsContainer');
+            const statsEl = document.getElementById('stats');
+            
+            // 显示提示信息
+            errorMessageEl.innerHTML = `
+                <strong>⚠️ NewsAPI 限制说明：</strong><br>
+                NewsAPI 不允许从浏览器直接调用（403 Forbidden）。<br>
+                当前使用模拟数据演示系统功能。<br>
+                <small class="text-gray-400">如需真实数据，请使用后端服务代理 API 请求。</small>
+            `;
+            errorEl.classList.remove('hidden');
+            
+            // 模拟数据
+            const mockArticles = [
+                {
+                    title: 'Insurance Fraud Ring Busted: $2M Life Insurance Scam Uncovered',
+                    description: 'Authorities have arrested five individuals in connection with a massive life insurance fraud scheme that defrauded insurers of over $2 million through fake death certificates and identity theft.',
+                    source: { name: 'Insurance Journal' },
+                    publishedAt: new Date().toISOString(),
+                    url: '#',
+                    urlToImage: null,
+                    category: '寿险',
+                    summary_zh: '执法部门破获一起大型寿险欺诈案，逮捕5名嫌疑人。该团伙通过伪造死亡证明和身份盗用，骗取保险公司超过200万美元。案件涉及多个州，目前正在进一步调查中。',
+                    translations: {
+                        zh: '保险欺诈团伙被破获：200万美元寿险诈骗案曝光',
+                        en: 'Insurance Fraud Ring Busted: $2M Life Insurance Scam Uncovered',
+                        th: 'เครือข่ายการฉ้อโกงประกันภัยถูกจับกุม: เปิดโปงการฉ้อโกงประกันชีวิตมูลค่า 2 ล้านดอลลาร์',
+                        vi: 'Vỡ lưới gian lận bảo hiểm: Phát hiện vụ lừa đảo bảo hiểm nhân thọ 2 triệu USD'
+                    }
+                },
+                {
+                    title: 'Auto Insurance Fraud Investigation Leads to 12 Arrests',
+                    description: 'A year-long investigation into staged auto accidents has resulted in the arrest of 12 suspects who allegedly orchestrated fake collisions to collect insurance payouts.',
+                    source: { name: 'Reuters' },
+                    publishedAt: new Date(Date.now() - 86400000).toISOString(),
+                    url: '#',
+                    urlToImage: null,
+                    category: '产险',
+                    summary_zh: '经过一年的调查，执法部门破获一起故意制造车祸的保险欺诈案，逮捕12名嫌疑人。该团伙通过策划虚假碰撞事故骗取保险赔偿，涉案金额巨大。',
+                    translations: {
+                        zh: '车险欺诈调查导致12人被捕',
+                        en: 'Auto Insurance Fraud Investigation Leads to 12 Arrests',
+                        th: 'การสอบสวนการฉ้อโกงประกันภัยรถยนต์นำไปสู่การจับกุม 12 คน',
+                        vi: 'Điều tra gian lận bảo hiểm ô tô dẫn đến 12 người bị bắt'
+                    }
+                },
+                {
+                    title: 'Medical Insurance Fraud: Doctor Charged with $5M Billing Scheme',
+                    description: 'A prominent physician has been charged with defrauding health insurance companies of $5 million through fraudulent billing practices and unnecessary medical procedures.',
+                    source: { name: 'Healthcare News' },
+                    publishedAt: new Date(Date.now() - 172800000).toISOString(),
+                    url: '#',
+                    urlToImage: null,
+                    category: '大健康',
+                    summary_zh: '一名知名医生被指控通过欺诈性账单和不必要的医疗程序，骗取健康保险公司500万美元。案件涉及数百名患者，目前正在法庭审理中。',
+                    translations: {
+                        zh: '医疗保险欺诈：医生被控500万美元账单诈骗',
+                        en: 'Medical Insurance Fraud: Doctor Charged with $5M Billing Scheme',
+                        th: 'การฉ้อโกงประกันสุขภาพ: แพทย์ถูกตั้งข้อหาแผนการเรียกเก็บเงิน 5 ล้านดอลลาร์',
+                        vi: 'Gian lận bảo hiểm y tế: Bác sĩ bị buộc tội kế hoạch thanh toán 5 triệu USD'
+                    }
+                },
+                {
+                    title: 'Critical Illness Insurance Fraud: Fake Cancer Diagnosis Exposed',
+                    description: 'Insurance investigators have uncovered a scheme where individuals faked critical illness diagnoses, particularly cancer, to claim large insurance payouts from critical illness policies.',
+                    source: { name: 'Insurance Times' },
+                    publishedAt: new Date(Date.now() - 259200000).toISOString(),
+                    url: '#',
+                    urlToImage: null,
+                    category: '寿险',
+                    summary_zh: '保险调查人员发现一起伪造重疾诊断的欺诈案，嫌疑人通过伪造癌症等重疾诊断骗取重大疾病保险赔付。案件涉及多名医生和患者，目前正在深入调查。',
+                    translations: {
+                        zh: '重疾保险欺诈：伪造癌症诊断被曝光',
+                        en: 'Critical Illness Insurance Fraud: Fake Cancer Diagnosis Exposed',
+                        th: 'การฉ้อโกงประกันโรคร้ายแรง: เปิดโปงการวินิจฉัยมะเร็งปลอม',
+                        vi: 'Gian lận bảo hiểm bệnh hiểm nghèo: Phát hiện chẩn đoán ung thư giả'
+                    }
+                },
+                {
+                    title: 'Reinsurance Fraud Case: International Investigation Underway',
+                    description: 'Regulators from multiple countries are investigating a complex reinsurance fraud scheme that spans across borders, involving fake reinsurance contracts and manipulated claims data.',
+                    source: { name: 'Financial Times' },
+                    publishedAt: new Date(Date.now() - 345600000).toISOString(),
+                    url: '#',
+                    urlToImage: null,
+                    category: '再保险',
+                    summary_zh: '多国监管机构正在调查一起复杂的跨境再保险欺诈案，涉及伪造再保险合同和操纵理赔数据。案件涉及多个国家的保险公司，调查仍在进行中。',
+                    translations: {
+                        zh: '再保险欺诈案：国际调查正在进行',
+                        en: 'Reinsurance Fraud Case: International Investigation Underway',
+                        th: 'คดีการฉ้อโกงประกันภัยต่อ: กำลังดำเนินการสอบสวนระหว่างประเทศ',
+                        vi: 'Vụ gian lận tái bảo hiểm: Điều tra quốc tế đang diễn ra'
+                    }
+                }
+            ];
+            
+            // 使用 Gemini 处理模拟数据（如果可用）
+            try {
+                const processedArticles = await Promise.all(
+                    mockArticles.map((article, index) => {
+                        return new Promise(resolve => {
+                            setTimeout(async () => {
+                                try {
+                                    const processed = await processArticleWithGemini(article);
+                                    resolve(processed);
+                                } catch (e) {
+                                    // 如果 Gemini 也失败，使用原始模拟数据
+                                    resolve(article);
+                                }
+                            }, index * 300);
+                        });
+                    })
+                );
+                
+                allArticles = processedArticles;
+            } catch (e) {
+                // 如果处理失败，直接使用模拟数据
+                allArticles = mockArticles;
+            }
+            
+            filterArticles();
+            updateStats();
+            startCountdown();
         }
 
         // 使用 Gemini API 处理文章
