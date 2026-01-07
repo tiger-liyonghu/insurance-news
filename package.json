@@ -1,0 +1,24 @@
+{
+  "name": "insurance-fraud-monitoring-system",
+  "version": "3.0.0",
+  "description": "全球保险欺诈监测情报系统 v3.0 - 前后端分离架构",
+  "main": "fetch_news.js",
+  "scripts": {
+    "fetch": "node fetch_news.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "insurance",
+    "fraud",
+    "monitoring",
+    "news"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

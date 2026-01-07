@@ -1,6 +1,6 @@
-# 全球保险欺诈监测情报系统 v2.0
+# 全球保险欺诈监测情报系统 v3.0
 
-Global Insurance Fraud Monitoring Intelligence System v2.0
+Global Insurance Fraud Monitoring Intelligence System v3.0
 
 ## 功能特性
 
@@ -12,23 +12,43 @@ Global Insurance Fraud Monitoring Intelligence System v2.0
 
 ## 技术栈
 
-- HTML5 + Tailwind CSS
-- NewsAPI（新闻数据源）
-- Google Gemini 1.5 Flash（AI 处理）
-- Lucide Icons（图标库）
+### v3.0 架构（前后端分离）
+- **前端**: HTML5 + Tailwind CSS + Lucide Icons
+- **后台**: Node.js + node-fetch
+- **数据源**: NewsAPI（新闻数据源）
+- **AI 处理**: Google Gemini 1.5 Flash
+- **自动化**: GitHub Actions（每小时自动更新）
 
 ## 使用方法
 
-1. 在 `index.html` 顶部配置您的 API Keys：
-   - `NEWS_API_KEY`: NewsAPI 密钥
-   - `GEMINI_API_KEY`: Google Gemini API 密钥
+### v3.0 设置（推荐）
 
-2. 直接在浏览器中打开 `index.html` 或使用本地服务器：
-   ```bash
-   python3 -m http.server 8000
-   ```
+1. **配置 GitHub Secrets**（必须）：
+   - 访问仓库 Settings → Secrets and variables → Actions
+   - 添加 `NEWS_API_KEY` 和 `GEMINI_API_KEY`
+   - 详细步骤请查看 [SETUP.md](./SETUP.md)
 
-3. 访问 http://localhost:8000
+2. **GitHub Actions 自动运行**：
+   - 每小时自动抓取数据并更新 `data.json`
+   - 无需手动操作
+
+3. **访问网站**：
+   - GitHub Pages: https://tiger-liyonghu.github.io/insurance-news/
+   - 或本地运行：`python3 -m http.server 8000`
+
+### 本地开发（可选）
+
+```bash
+# 安装依赖
+npm install
+
+# 设置环境变量
+export NEWS_API_KEY="你的_NewsAPI_Key"
+export GEMINI_API_KEY="你的_Gemini_API_Key"
+
+# 运行数据抓取脚本
+npm run fetch
+```
 
 ## 部署
 
@@ -36,7 +56,12 @@ Global Insurance Fraud Monitoring Intelligence System v2.0
 
 ## 版本历史
 
-- **v2.0** (当前): 全球保险欺诈监测情报系统
+- **v3.0** (当前): 前后端分离架构
+  - 架构：后台自动抓取 + 前端静态展示
+  - 自动化：GitHub Actions 每小时自动更新
+  - 安全：API Keys 通过 GitHub Secrets 管理
+  - 备份文件：`index-v2.0.html`
+- **v2.0**: 全球保险欺诈监测情报系统
   - 功能：AI 智能分类、多语言支持、数据大屏展示、模拟数据备选方案
   - 备份文件：`index-v2.0.html`
 - **v1.0**: 保险新闻看板

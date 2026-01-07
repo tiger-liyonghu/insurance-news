@@ -1,0 +1,63 @@
+name: 自动更新新闻数据
+
+on:
+  # 每小时运行一次
+  schedule:
+    - cron: '0 * * * *'  # 每小时的整点运行
+  # 代码推送时也运行（可选）
+  push:
+    branches:
+      - main
+    paths:
+      - 'fetch_news.js'
+      - '.github/workflows/update.yml'
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 安装依赖
+        run: npm install
+
+      - name: 运行数据抓取脚本
+        env:
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-1.5-flash' }}
+        run: npm run fetch
+
+      - name: 检查是否有变更
+        id: check-changes
+        run: |
+          if [ -n "$(git status --porcelain data.json)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 提交并推送变更
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git commit -m "🤖 自动更新: $(date +'%Y-%m-%d %H:%M:%S')" || exit 0
+          git push
+
+      - name: 完成
+        if: steps.check-changes.outputs.has_changes == 'false'
+        run: echo "✅ 数据无变更，跳过提交"
