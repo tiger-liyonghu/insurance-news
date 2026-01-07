@@ -36,5 +36,8 @@ Global Insurance Fraud Monitoring Intelligence System v2.0
 
 ## 版本历史
 
-- v2.0: 全球保险欺诈监测情报系统
-- v1.0: 保险新闻看板（备份文件：index-v1.0.html）
+- **v2.0** (当前): 全球保险欺诈监测情报系统
+  - 功能：AI 智能分类、多语言支持、数据大屏展示、模拟数据备选方案
+  - 备份文件：`index-v2.0.html`
+- **v1.0**: 保险新闻看板
+  - 备份文件：`index-v1.0.html`
