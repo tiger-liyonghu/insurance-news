@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保险新闻看板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .news-card {
+            transition: all 0.3s ease;
+        }
+        .news-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .countdown {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- API Keys 配置 -->
+    <script>
+        // ========== API 配置 ==========
+        const NEWS_API_KEY = '4fdac0034c824cbcbc6b87d8aba55a21'; // 请替换为您的 NewsAPI Key
+        const GEMINI_API_KEY = 'AIzaSyCue2ll9tnKu2JlY8oRUJJzAKyRvuY4Zfw'; // 请替换为您的 Gemini API Key
+        
+        // CORS 代理服务（NewsAPI 不允许从浏览器直接调用，必须使用代理）
+        const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+        const USE_PROXY = true; // NewsAPI 需要代理才能从浏览器调用
+    </script>
+
+    <!-- 顶部导航栏 -->
+    <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-white tracking-tight">保险新闻看板</h1>
+                    <span class="ml-4 text-xs text-gray-400 font-mono">Insurance News Dashboard</span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-400">下次更新：</span>
+                        <span id="countdown" class="countdown text-lg font-semibold text-blue-400">120</span>
+                        <span class="text-sm text-gray-400">秒</span>
+                    </div>
+                    <button 
+                        id="refreshBtn" 
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                        立即刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 加载状态 -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="mt-4 text-gray-400">正在加载新闻...</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="hidden bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
+            <p class="text-red-300" id="errorMessage"></p>
+        </div>
+
+        <!-- 新闻列表 -->
+        <div id="newsContainer" class="hidden space-y-4">
+            <!-- 新闻卡片将通过 JavaScript 动态生成 -->
+        </div>
+    </main>
+
+    <script>
+        let countdownInterval = null;
+        let updateInterval = null;
+        let countdownSeconds = 120;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNews();
+            setupRefreshButton();
+        });
+
+        // 设置刷新按钮
+        function setupRefreshButton() {
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                loadNews();
+            });
+        }
+
+        // 启动倒计时
+        function startCountdown() {
+            countdownSeconds = 120;
+            const countdownEl = document.getElementById('countdown');
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                countdownEl.textContent = countdownSeconds;
+                
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownInterval);
+                    loadNews();
+                }
+            }, 1000);
+        }
+
+        // 获取新闻数据
+        async function loadNews() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const errorMessageEl = document.getElementById('errorMessage');
+            const newsContainer = document.getElementById('newsContainer');
+            
+            // 显示加载状态
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            newsContainer.classList.add('hidden');
+
+            try {
+                // 构建 NewsAPI URL
+                const keywords = ['Insurance', 'Insurtech', 'Reinsurance'];
+                const query = keywords.join(' OR ');
+                let newsApiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=10&apiKey=${NEWS_API_KEY}`;
+                
+                // 如果需要使用代理
+                if (USE_PROXY) {
+                    newsApiUrl = CORS_PROXY + encodeURIComponent(newsApiUrl);
+                }
+
+                // 获取新闻
+                const response = await fetch(newsApiUrl);
+                
+                if (!response.ok) {
+                    // 尝试获取详细错误信息
+                    let errorDetail = '';
+                    try {
+                        const errorData = await response.json();
+                        errorDetail = errorData.message || errorData.code || '';
+                    } catch (e) {
+                        errorDetail = response.statusText;
+                    }
+                    
+                    if (response.status === 401) {
+                        throw new Error(`API Key 无效或未授权。请检查您的 NewsAPI Key 是否正确。错误详情: ${errorDetail}`);
+                    } else if (response.status === 429) {
+                        throw new Error('API 请求次数超限，请稍后再试');
+                    } else {
+                        throw new Error(`NewsAPI 错误 (${response.status}): ${errorDetail || response.statusText}`);
+                    }
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'error') {
+                    throw new Error(`NewsAPI 返回错误: ${data.message || '未知错误'}`);
+                }
+                
+                if (data.status !== 'ok' || !data.articles || data.articles.length === 0) {
+                    throw new Error('未找到相关新闻');
+                }
+
+                // 处理新闻数据
+                const articles = data.articles.slice(0, 10);
+                
+                // 使用 Gemini API 处理每条新闻
+                const processedArticles = await Promise.all(
+                    articles.map(article => processArticleWithGemini(article))
+                );
+
+                // 渲染新闻
+                renderNews(processedArticles);
+                
+                // 启动倒计时
+                startCountdown();
+                
+            } catch (error) {
+                console.error('加载新闻失败:', error);
+                errorMessageEl.textContent = `加载失败: ${error.message}`;
+                errorEl.classList.remove('hidden');
+            } finally {
+                loadingEl.classList.add('hidden');
+            }
+        }
+
+        // 使用 Gemini API 处理文章（翻译和生成点评）
+        async function processArticleWithGemini(article) {
+            try {
+                const prompt = `请将以下英文新闻标题和摘要翻译成中文，并为这条新闻生成一句简短的中文点评（不超过30字）。
+
+标题: ${article.title || '无标题'}
+摘要: ${article.description || '无摘要'}
+
+请以 JSON 格式返回，格式如下：
+{
+  "title_zh": "中文标题",
+  "description_zh": "中文摘要",
+  "comment": "一句话点评"
+}`;
+
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+                
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API 错误: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                    throw new Error('Gemini API 返回格式错误');
+                }
+
+                const text = data.candidates[0].content.parts[0].text;
+                
+                // 尝试提取 JSON（Gemini 可能返回带 markdown 格式的文本）
+                let jsonText = text.trim();
+                if (jsonText.includes('```json')) {
+                    jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+                } else if (jsonText.includes('```')) {
+                    jsonText = jsonText.split('```')[1].split('```')[0].trim();
+                }
+                
+                const result = JSON.parse(jsonText);
+                
+                return {
+                    ...article,
+                    title_zh: result.title_zh || article.title,
+                    description_zh: result.description_zh || article.description,
+                    comment: result.comment || '暂无点评'
+                };
+                
+            } catch (error) {
+                console.error('Gemini API 处理失败:', error);
+                // 如果 Gemini API 失败，返回原始数据
+                return {
+                    ...article,
+                    title_zh: article.title,
+                    description_zh: article.description,
+                    comment: 'AI 处理失败，显示原文'
+                };
+            }
+        }
+
+        // 渲染新闻列表
+        function renderNews(articles) {
+            const newsContainer = document.getElementById('newsContainer');
+            newsContainer.innerHTML = '';
+
+            articles.forEach((article, index) => {
+                const card = document.createElement('div');
+                card.className = 'news-card bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-blue-500';
+                
+                const publishedDate = article.publishedAt 
+                    ? new Date(article.publishedAt).toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : '未知时间';
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h2 class="text-xl font-semibold text-white mb-2 leading-tight">
+                                ${article.title_zh || article.title}
+                            </h2>
+                            <p class="text-gray-400 text-sm mb-3 line-clamp-2">
+                                ${article.description_zh || article.description || '暂无摘要'}
+                            </p>
+                        </div>
+                        ${article.urlToImage ? `
+                            <img src="${article.urlToImage}" 
+                                 alt="${article.title_zh || article.title}" 
+                                 class="ml-4 w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                                 onerror="this.style.display='none'">
+                        ` : ''}
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            <span>${article.source?.name || '未知来源'}</span>
+                            <span>•</span>
+                            <span>${publishedDate}</span>
+                        </div>
+                        ${article.url ? `
+                            <a href="${article.url}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                                阅读原文 →
+                            </a>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-3 pt-3 border-t border-gray-700">
+                        <div class="flex items-start">
+                            <span class="text-blue-400 text-sm font-medium mr-2">💡 点评：</span>
+                            <p class="text-gray-300 text-sm flex-1">${article.comment || '暂无点评'}</p>
+                        </div>
+                    </div>
+                `;
+                
+                newsContainer.appendChild(card);
+            });
+
+            newsContainer.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
