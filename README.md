@@ -60,7 +60,8 @@ npm run fetch
   - 架构：后台自动抓取 + 前端静态展示
   - 自动化：GitHub Actions 每小时自动更新
   - 安全：API Keys 通过 GitHub Secrets 管理
-  - 备份文件：`index-v2.0.html`
+  - 文件：Node.js 后台脚本 + GitHub Actions 工作流
+  - 备份文件：`index-v3.0.html`
 - **v2.0**: 全球保险欺诈监测情报系统
   - 功能：AI 智能分类、多语言支持、数据大屏展示、模拟数据备选方案
   - 备份文件：`index-v2.0.html`
