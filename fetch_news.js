@@ -20,7 +20,8 @@ const crypto = require('crypto');
 // ========== 配置检查 ==========
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-flash'; // 强制使用快速模型
+// Gemini 模型配置 - 使用可用的快速模型
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'; // 使用 gemini-2.5-flash（最快的可用模型）
 
 if (!NEWS_API_KEY) {
     console.error('❌ 错误: NEWS_API_KEY 环境变量未设置');
@@ -199,7 +200,15 @@ ${articles.map((article, index) => `
         }, API_TIMEOUT);
 
         if (!response.ok) {
-            throw new Error(`Gemini API 错误: ${response.status}`);
+            // 获取详细错误信息
+            let errorDetail = '';
+            try {
+                const errorData = await response.json();
+                errorDetail = errorData.error?.message || errorData.message || JSON.stringify(errorData);
+            } catch (e) {
+                errorDetail = response.statusText;
+            }
+            throw new Error(`Gemini API 错误 (${response.status}): ${errorDetail}`);
         }
 
         const data = await response.json();
@@ -295,7 +304,15 @@ async function processArticleSingle(article, retryCount = 0) {
         }, API_TIMEOUT);
 
         if (!response.ok) {
-            throw new Error(`Gemini API 错误: ${response.status}`);
+            // 获取详细错误信息
+            let errorDetail = '';
+            try {
+                const errorData = await response.json();
+                errorDetail = errorData.error?.message || errorData.message || JSON.stringify(errorData);
+            } catch (e) {
+                errorDetail = response.statusText;
+            }
+            throw new Error(`Gemini API 错误 (${response.status}): ${errorDetail}`);
         }
 
         const data = await response.json();
