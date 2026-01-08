@@ -284,10 +284,24 @@ def init_supabase():
     """初始化 Supabase 连接"""
     if not SUPABASE_URL or not SUPABASE_KEY:
         st.error("⚠️ 错误: 缺少 Supabase 配置")
+        st.info("💡 请在 Streamlit Cloud Settings → Secrets 中配置 SUPABASE_URL 和 SUPABASE_KEY")
         st.stop()
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        st.error(f"❌ Supabase 连接失败: {str(e)}")
+        st.info("💡 请检查 Secrets 中的 SUPABASE_URL 和 SUPABASE_KEY 是否正确")
+        st.stop()
 
-supabase: Client = init_supabase()
+# 延迟初始化，避免在导入时就失败
+supabase: Client = None
+
+def get_supabase():
+    """获取 Supabase 客户端（延迟初始化）"""
+    global supabase
+    if supabase is None:
+        supabase = init_supabase()
+    return supabase
 
 # ==================== 工具函数 ====================
 
@@ -317,7 +331,11 @@ def get_agent_status() -> dict:
     检查最近一次数据更新时间
     """
     try:
-        result = supabase.table('fraud_cases')\
+        db = get_supabase()
+        if not db:
+            return {'status': 'offline', 'text': 'Agent Offline', 'emoji': '🔴'}
+        
+        result = db.table('fraud_cases')\
             .select('created_at')\
             .order('created_at', desc=True)\
             .limit(1)\
@@ -388,7 +406,11 @@ def fetch_cases_with_filters(
 def get_available_filters() -> dict:
     """获取可用的筛选选项"""
     try:
-        result = supabase.table('fraud_cases').select('region_iso, business_line').execute()
+        db = get_supabase()
+        if not db:
+            return {'regions': [], 'business_lines': []}
+        
+        result = db.table('fraud_cases').select('region_iso, business_line').execute()
         
         if not result.data:
             return {'regions': [], 'business_lines': []}
