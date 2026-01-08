@@ -118,13 +118,18 @@ def check_environment():
                 error_msg = str(e).lower()
                 if 'invalid' in error_msg or '401' in error_msg or '403' in error_msg:
                     print(f"  ⚠️  Supabase API Key 可能无效: {str(e)[:80]}")
-                    warnings.append("Supabase API Key 可能无效，请检查 Secrets")
+                    warnings.append("Supabase API Key 可能无效，请检查 Secrets（脚本仍会运行，但无法保存数据）")
                 else:
                     print(f"  ⚠️  Supabase 连接测试失败: {str(e)[:80]}")
-                    warnings.append(f"Supabase 连接问题: {str(e)[:80]}")
+                    warnings.append(f"Supabase 连接问题: {str(e)[:80]}（脚本仍会运行，但无法保存数据）")
         except Exception as e:
-            print(f"  ❌ Supabase 客户端: 初始化失败 - {str(e)[:80]}")
-            errors.append(f"Supabase 初始化失败: {str(e)[:80]}")
+            error_msg = str(e).lower()
+            if 'invalid' in error_msg or '401' in error_msg or '403' in error_msg:
+                print(f"  ⚠️  Supabase API Key 无效: {str(e)[:80]}")
+                warnings.append("Supabase API Key 无效，请检查 Secrets（脚本仍会运行，但无法保存数据）")
+            else:
+                print(f"  ⚠️  Supabase 初始化失败: {str(e)[:80]}")
+                warnings.append(f"Supabase 初始化失败: {str(e)[:80]}（脚本仍会运行，但无法保存数据）")
     
     # 总结
     print("\n" + "=" * 70)
