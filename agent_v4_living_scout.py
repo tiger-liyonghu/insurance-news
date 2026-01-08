@@ -408,9 +408,20 @@ def main():
     print("=" * 70)
     
     # 验证配置
-    if not all([TAVILY_API_KEY, GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-        print("❌ 错误: 缺少必要的 API Key")
-        return
+    missing_keys = []
+    if not TAVILY_API_KEY:
+        missing_keys.append("TAVILY_API_KEY")
+    if not GEMINI_API_KEY:
+        missing_keys.append("GEMINI_API_KEY")
+    if not SUPABASE_URL:
+        missing_keys.append("SUPABASE_URL")
+    if not SUPABASE_KEY:
+        missing_keys.append("SUPABASE_KEY")
+    
+    if missing_keys:
+        print(f"❌ 错误: 缺少必要的 API Key: {', '.join(missing_keys)}")
+        import sys
+        sys.exit(1)
     
     # 加载监控域名
     global monitored_domains
@@ -481,4 +492,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n⚠️ 用户中断")
+        import sys
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ 未预期的错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        import sys
+        sys.exit(1)
