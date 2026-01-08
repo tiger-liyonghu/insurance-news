@@ -42,6 +42,19 @@ jobs:
           echo "✅ All required environment variables are set"
         fi
     
+    - name: Run diagnostic script
+      env:
+        TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      run: |
+        python3 test_github_actions.py || {
+          echo "❌ 诊断脚本发现问题，请查看上方输出"
+          exit 1
+        }
+    
     - name: Run Living Scout
       env:
         TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
