@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球保险欺诈监测情报系统 v3.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        
+        .glow-border {
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2), inset 0 0 20px rgba(6, 182, 212, 0.1);
+        }
+        
+        .glow-border-amber {
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 0 20px rgba(245, 158, 11, 0.1);
+        }
+        
+        .card-enter {
+            animation: cardEnter 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        @keyframes cardEnter {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+            }
+        }
+        
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .category-life { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .category-property { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .category-reinsurance { background: rgba(168, 85, 247, 0.2); color: #a78bfa; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .category-health { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    </style>
+</head>
+<body class="bg-slate-950 text-gray-100">
+    <!-- v3.0: 前后端分离架构 - 不再需要 API 配置 -->
+
+    <!-- 顶部导航栏 -->
+    <header class="bg-slate-900/80 backdrop-blur-sm border-b border-cyan-500/20 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center pulse-glow">
+                        <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">全球保险欺诈监测情报系统</h1>
+                        <p class="text-xs text-cyan-400 font-mono">Global Insurance Fraud Monitoring Intelligence System v3.0</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-2 bg-slate-800/50 px-4 py-2 rounded-lg border border-cyan-500/20">
+                        <i data-lucide="clock" class="w-4 h-4 text-cyan-400"></i>
+                        <span class="text-sm text-gray-400">下次同步：</span>
+                        <span id="countdown" class="text-lg font-bold text-cyan-400 font-mono tabular-nums">60:00</span>
+                    </div>
+                    <button 
+                        id="refreshBtn" 
+                        class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-sm font-medium transition-all flex items-center space-x-2"
+                    >
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>立即同步</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 分类筛选栏 -->
+    <div class="bg-slate-900/50 border-b border-cyan-500/10 sticky top-20 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center space-x-3 overflow-x-auto">
+                <span class="text-sm text-gray-400 whitespace-nowrap">分类筛选：</span>
+                <button 
+                    class="category-filter active px-4 py-2 rounded-lg text-sm font-medium transition-all bg-cyan-600 text-white"
+                    data-category="all"
+                >
+                    全部
+                </button>
+                <button 
+                    class="category-filter px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-gray-300 hover:bg-slate-700"
+                    data-category="寿险"
+                >
+                    寿险
+                </button>
+                <button 
+                    class="category-filter px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-gray-300 hover:bg-slate-700"
+                    data-category="产险"
+                >
+                    产险
+                </button>
+                <button 
+                    class="category-filter px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-gray-300 hover:bg-slate-700"
+                    data-category="再保险"
+                >
+                    再保险
+                </button>
+                <button 
+                    class="category-filter px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-gray-300 hover:bg-slate-700"
+                    data-category="大健康"
+                >
+                    大健康
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 加载状态 -->
+        <div id="loading" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
+            <p class="mt-6 text-cyan-400 text-lg font-medium">正在同步全球欺诈监测数据...</p>
+            <p class="mt-2 text-gray-500 text-sm">AI 正在分析案例并生成情报摘要</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="hidden bg-red-900/30 border border-red-700 rounded-lg p-6 mb-6 glow-border-amber">
+            <div class="flex items-start space-x-3">
+                <i data-lucide="alert-circle" class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h3 class="text-red-300 font-semibold mb-1">数据同步失败</h3>
+                    <p class="text-red-400 text-sm" id="errorMessage"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div id="stats" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-900/50 border border-cyan-500/20 rounded-lg p-4 glow-border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">总案例数</p>
+                        <p class="text-2xl font-bold text-cyan-400 mt-1" id="totalCases">0</p>
+                    </div>
+                    <i data-lucide="file-text" class="w-8 h-8 text-cyan-400/50"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900/50 border border-cyan-500/20 rounded-lg p-4 glow-border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">当前筛选</p>
+                        <p class="text-2xl font-bold text-amber-400 mt-1" id="filteredCases">0</p>
+                    </div>
+                    <i data-lucide="filter" class="w-8 h-8 text-amber-400/50"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900/50 border border-cyan-500/20 rounded-lg p-4 glow-border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">最后更新</p>
+                        <p class="text-lg font-semibold text-green-400 mt-1" id="lastUpdate">--:--</p>
+                    </div>
+                    <i data-lucide="clock-check" class="w-8 h-8 text-green-400/50"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900/50 border border-cyan-500/20 rounded-lg p-4 glow-border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">数据源</p>
+                        <p class="text-lg font-semibold text-blue-400 mt-1">NewsAPI</p>
+                    </div>
+                    <i data-lucide="database" class="w-8 h-8 text-blue-400/50"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新闻列表 -->
+        <div id="newsContainer" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 新闻卡片将通过 JavaScript 动态生成 -->
+        </div>
+    </main>
+
+    <script>
+        // ========== 全局变量 ==========
+        let countdownInterval = null;
+        let countdownSeconds = 3600; // 1小时 = 3600秒
+        let allArticles = [];
+        let filteredArticles = [];
+        let currentCategory = 'all';
+        
+        // 业务线关键词映射
+        const businessKeywords = {
+            'Life': '寿险',
+            'Accident': '意外',
+            'Critical Illness': '重疾',
+            'Cancer': '防癌',
+            'LTC': '护理',
+            'Disability': '失能',
+            'Medical': '医疗'
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            setupEventListeners();
+            loadNews();
+        });
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 刷新按钮
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                loadNews();
+            });
+            
+            // 分类筛选按钮
+            document.querySelectorAll('.category-filter').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 更新按钮状态
+                    document.querySelectorAll('.category-filter').forEach(b => {
+                        b.classList.remove('active', 'bg-cyan-600', 'text-white');
+                        b.classList.add('bg-slate-800', 'text-gray-300');
+                    });
+                    btn.classList.add('active', 'bg-cyan-600', 'text-white');
+                    btn.classList.remove('bg-slate-800', 'text-gray-300');
+                    
+                    // 更新筛选
+                    currentCategory = btn.dataset.category;
+                    filterArticles();
+                });
+            });
+        }
+
+        // v3.0: 启动倒计时（显示距离下次 GitHub Actions 更新的时间）
+        function startCountdown() {
+            // 计算距离下一个整点的时间
+            const now = new Date();
+            const nextHour = new Date(now);
+            nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+            countdownSeconds = Math.floor((nextHour - now) / 1000);
+            
+            const countdownEl = document.getElementById('countdown');
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                const minutes = Math.floor(countdownSeconds / 60);
+                const seconds = countdownSeconds % 60;
+                countdownEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownInterval);
+                    // 重新加载数据（GitHub Actions 应该已经更新了 data.json）
+                    loadNews();
+                }
+            }, 1000);
+        }
+
+        // v3.0: 从本地 data.json 读取数据（后台已处理）
+        async function loadNews() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const errorMessageEl = document.getElementById('errorMessage');
+            const newsContainer = document.getElementById('newsContainer');
+            const statsEl = document.getElementById('stats');
+            
+            // 显示加载状态
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            newsContainer.classList.add('hidden');
+            statsEl.classList.add('hidden');
+
+            try {
+                // 从本地 data.json 读取数据
+                const response = await fetch('./data.json', {
+                    cache: 'no-store' // 确保获取最新数据
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`无法加载数据文件 (${response.status}): ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // 检查数据是否为空（GitHub Actions 可能尚未运行）
+                if (!data.articles || data.articles.length === 0) {
+                    // 显示友好的等待提示，而不是错误
+                    errorMessageEl.innerHTML = `
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <i data-lucide="clock" class="w-6 h-6 text-amber-400"></i>
+                            </div>
+                            <div>
+                                <strong class="text-amber-300">⏳ 等待数据更新</strong><br>
+                                <p class="text-gray-300 mt-2">
+                                    GitHub Actions 正在准备数据，请稍候...<br>
+                                    <small class="text-gray-400">
+                                    ${data.note || '数据文件已创建，等待后台脚本处理数据。'}
+                                    </small>
+                                </p>
+                                <div class="mt-4 space-y-2 text-sm">
+                                    <p class="text-gray-400">📋 检查清单：</p>
+                                    <ul class="list-disc list-inside space-y-1 text-gray-400 ml-4">
+                                        <li>确认已配置 GitHub Secrets（NEWS_API_KEY, GEMINI_API_KEY）</li>
+                                        <li>检查 <a href="https://github.com/tiger-liyonghu/insurance-news/actions" target="_blank" class="text-cyan-400 hover:underline">GitHub Actions</a> 是否正常运行</li>
+                                        <li>等待 GitHub Actions 完成数据抓取（通常需要 1-2 分钟）</li>
+                                    </ul>
+                                </div>
+                                <button 
+                                    onclick="location.reload()" 
+                                    class="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    🔄 刷新页面
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    errorEl.classList.remove('hidden');
+                    // 重新初始化图标
+                    setTimeout(() => lucide.createIcons(), 100);
+                    return;
+                }
+
+                // 数据已经在后台处理完成，直接使用
+                allArticles = data.articles;
+                filterArticles();
+                
+                // 更新统计信息
+                updateStats();
+                
+                // 显示最后更新时间
+                if (data.lastUpdated) {
+                    const lastUpdateEl = document.getElementById('lastUpdate');
+                    if (lastUpdateEl) {
+                        const updateTime = new Date(data.lastUpdated);
+                        lastUpdateEl.textContent = updateTime.toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+                
+                // 启动倒计时
+                startCountdown();
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                
+                // 如果是 404 错误，说明文件不存在
+                if (error.message.includes('404') || error.message.includes('无法加载数据文件 (404)')) {
+                    errorMessageEl.innerHTML = `
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <i data-lucide="file-x" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                            <div>
+                                <strong class="text-red-300">❌ data.json 文件未找到</strong><br>
+                                <p class="text-gray-300 mt-2">
+                                    GitHub Actions 尚未运行或文件未生成。
+                                </p>
+                                <div class="mt-4 space-y-2 text-sm">
+                                    <p class="text-gray-400">📋 解决步骤：</p>
+                                    <ol class="list-decimal list-inside space-y-1 text-gray-400 ml-4">
+                                        <li>访问 <a href="https://github.com/tiger-liyonghu/insurance-news/settings/secrets/actions" target="_blank" class="text-cyan-400 hover:underline">GitHub Secrets</a> 配置 API Keys</li>
+                                        <li>访问 <a href="https://github.com/tiger-liyonghu/insurance-news/actions" target="_blank" class="text-cyan-400 hover:underline">GitHub Actions</a> 手动触发工作流</li>
+                                        <li>等待工作流完成（通常 1-2 分钟）</li>
+                                        <li>刷新此页面</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 其他错误
+                    errorMessageEl.innerHTML = `
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <i data-lucide="alert-circle" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                            <div>
+                                <strong class="text-red-300">❌ 数据加载失败</strong><br>
+                                <p class="text-gray-300 mt-2">${error.message}</p>
+                                <div class="mt-4 space-y-2 text-sm text-gray-400">
+                                    <p>可能的原因：</p>
+                                    <ul class="list-disc list-inside space-y-1 ml-4">
+                                        <li>data.json 文件格式错误</li>
+                                        <li>网络连接问题</li>
+                                        <li>文件路径错误</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                errorEl.classList.remove('hidden');
+                // 重新初始化图标
+                setTimeout(() => lucide.createIcons(), 100);
+            } finally {
+                loadingEl.classList.add('hidden');
+            }
+        }
+
+        // v3.0: 数据处理已在后台完成，不再需要这些函数
+
+        // 筛选文章
+        function filterArticles() {
+            if (currentCategory === 'all') {
+                filteredArticles = allArticles;
+            } else {
+                filteredArticles = allArticles.filter(article => article.category === currentCategory);
+            }
+            
+            renderNews(filteredArticles);
+            updateStats();
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalCases').textContent = allArticles.length;
+            document.getElementById('filteredCases').textContent = filteredArticles.length;
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('stats').classList.remove('hidden');
+        }
+
+        // 生成分享图片
+        function generateShareImage(article) {
+            // 这里可以实现图片生成逻辑
+            // 可以使用 html2canvas 库或调用后端服务
+            alert('分享图片功能开发中...\n\n案例标题：' + article.translations.zh);
+        }
+
+        // 渲染新闻列表
+        function renderNews(articles) {
+            const newsContainer = document.getElementById('newsContainer');
+            newsContainer.innerHTML = '';
+
+            articles.forEach((article, index) => {
+                const card = document.createElement('div');
+                card.className = 'card-enter bg-slate-900/50 border border-cyan-500/20 rounded-lg p-6 glow-border hover:border-cyan-500/50 transition-all';
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                const publishedDate = article.publishedAt 
+                    ? new Date(article.publishedAt).toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : '未知时间';
+
+                // 分类徽章样式
+                const categoryClass = {
+                    '寿险': 'category-life',
+                    '产险': 'category-property',
+                    '再保险': 'category-reinsurance',
+                    '大健康': 'category-health'
+                }[article.category] || 'category-property';
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="category-badge ${categoryClass}">${article.category}</span>
+                                <span class="text-xs text-gray-500">${publishedDate}</span>
+                            </div>
+                            <h2 class="article-title text-xl font-bold text-white mb-3 leading-tight" data-article-index="${index}">
+                                ${article.translations.zh || article.title}
+                            </h2>
+                            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+                                ${article.summary_zh || article.description || '暂无摘要'}
+                            </p>
+                        </div>
+                        ${article.urlToImage ? `
+                            <img src="${article.urlToImage}" 
+                                 alt="${article.translations.zh || article.title}" 
+                                 class="ml-4 w-24 h-24 object-cover rounded-lg flex-shrink-0 border border-cyan-500/20"
+                                 onerror="this.style.display='none'">
+                        ` : ''}
+                    </div>
+                    
+                    <div class="border-t border-cyan-500/20 pt-4 mt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2 text-sm text-gray-400">
+                                <i data-lucide="newspaper" class="w-4 h-4"></i>
+                                <span>${article.source?.name || '未知来源'}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                <span>多语言：</span>
+                                <button class="lang-btn hover:text-cyan-400 transition-colors ${index === 0 ? 'text-cyan-400' : ''}" data-lang="zh" data-article-index="${index}" title="中文">中</button>
+                                <span>|</span>
+                                <button class="lang-btn hover:text-cyan-400 transition-colors" data-lang="en" data-article-index="${index}" title="English">EN</button>
+                                <span>|</span>
+                                <button class="lang-btn hover:text-cyan-400 transition-colors" data-lang="th" data-article-index="${index}" title="ไทย">TH</button>
+                                <span>|</span>
+                                <button class="lang-btn hover:text-cyan-400 transition-colors" data-lang="vi" data-article-index="${index}" title="Tiếng Việt">VI</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button 
+                                class="share-image-btn flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2"
+                                data-article-index="${index}"
+                            >
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                                <span>生成分享图片</span>
+                            </button>
+                            ${article.url ? `
+                                <a href="${article.url}" 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2"
+                                >
+                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                    <span>查看原文</span>
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                newsContainer.appendChild(card);
+                
+                // 绑定分享图片按钮事件
+                const shareBtn = card.querySelector('.share-image-btn');
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', () => {
+                        generateShareImage(article);
+                    });
+                }
+                
+                // 绑定语言切换按钮事件
+                card.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const lang = btn.dataset.lang;
+                        const articleIndex = parseInt(btn.dataset.articleIndex);
+                        const titleEl = card.querySelector('.article-title');
+                        
+                        if (titleEl && article.translations && article.translations[lang]) {
+                            titleEl.textContent = article.translations[lang];
+                            
+                            // 更新按钮状态
+                            card.querySelectorAll('.lang-btn').forEach(b => {
+                                b.classList.remove('text-cyan-400');
+                            });
+                            btn.classList.add('text-cyan-400');
+                        }
+                    });
+                });
+            });
+            
+            // 重新初始化图标
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
+
+            newsContainer.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
