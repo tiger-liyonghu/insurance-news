@@ -383,7 +383,11 @@ def fetch_cases_with_filters(
         案例列表
     """
     try:
-        query = supabase.table('fraud_cases').select('*')
+        db = get_supabase()
+        if not db:
+            return []
+        
+        query = db.table('fraud_cases').select('*')
         
         # 应用地区筛选（多选）
         if region_isos and len(region_isos) > 0:
@@ -398,7 +402,13 @@ def fetch_cases_with_filters(
         
         return result.data if result.data else []
     except Exception as e:
-        st.error(f"❌ 获取数据失败: {str(e)}")
+        error_msg = str(e)
+        # 如果是字段不存在的错误，提供更友好的提示
+        if 'does not exist' in error_msg or '42703' in error_msg:
+            st.error("❌ 数据库表结构未更新到 v5.0")
+            st.info("💡 请在 Supabase SQL Editor 中执行 `migrate_to_v5.sql` 迁移脚本")
+        else:
+            st.error(f"❌ 获取数据失败: {error_msg}")
         return []
 
 
