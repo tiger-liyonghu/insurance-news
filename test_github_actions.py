@@ -69,11 +69,27 @@ def check_environment():
             print(f"  ❌ {package}: 未安装")
             errors.append(f"缺少依赖包: {package}")
     
-    # 测试导入 agent_v4_living_scout
+    # 测试导入 agent_v4_living_scout（不初始化客户端）
     print("\n📄 检查脚本文件:")
     try:
+        # 临时移除环境变量，避免导入时初始化失败
+        import importlib
+        import sys
+        
+        # 保存原始环境变量
+        original_env = {}
+        for key in ['TAVILY_API_KEY', 'GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_KEY']:
+            original_env[key] = os.environ.get(key)
+        
+        # 尝试导入（即使 API key 无效也应该能导入）
         import agent_v4_living_scout
         print("  ✅ agent_v4_living_scout.py: 可以导入")
+        
+        # 恢复环境变量
+        for key, value in original_env.items():
+            if value:
+                os.environ[key] = value
+                
     except Exception as e:
         print(f"  ❌ agent_v4_living_scout.py: 导入失败 - {str(e)}")
         errors.append(f"脚本导入失败: {str(e)}")
@@ -109,10 +125,21 @@ def check_environment():
                 os.getenv('SUPABASE_URL'),
                 os.getenv('SUPABASE_KEY')
             )
-            print("  ✅ Supabase 客户端: 可以初始化")
+            # 尝试一个简单查询来验证
+            try:
+                result = client.table('fraud_cases').select('id').limit(1).execute()
+                print("  ✅ Supabase 客户端: 可以初始化并连接")
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'invalid' in error_msg or '401' in error_msg or '403' in error_msg:
+                    print(f"  ⚠️  Supabase API Key 可能无效: {str(e)[:80]}")
+                    warnings.append("Supabase API Key 可能无效，请检查 Secrets")
+                else:
+                    print(f"  ⚠️  Supabase 连接测试失败: {str(e)[:80]}")
+                    warnings.append(f"Supabase 连接问题: {str(e)[:80]}")
         except Exception as e:
-            print(f"  ❌ Supabase 客户端: 初始化失败 - {str(e)}")
-            errors.append(f"Supabase 初始化失败: {str(e)}")
+            print(f"  ❌ Supabase 客户端: 初始化失败 - {str(e)[:80]}")
+            errors.append(f"Supabase 初始化失败: {str(e)[:80]}")
     
     # 总结
     print("\n" + "=" * 70)

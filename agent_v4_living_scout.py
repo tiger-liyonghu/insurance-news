@@ -24,10 +24,47 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# 初始化客户端
-tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None
-genai.configure(api_key=GEMINI_API_KEY)
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+# 初始化客户端（延迟初始化，避免导入时验证失败）
+tavily_client = None
+supabase: Client = None
+
+def init_clients():
+    """初始化客户端（在运行时调用，而不是导入时）"""
+    global tavily_client, supabase
+    
+    # 初始化 Tavily
+    if TAVILY_API_KEY:
+        try:
+            tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
+        except Exception as e:
+            print(f"⚠️ Tavily 初始化失败: {str(e)}")
+            tavily_client = None
+    
+    # 配置 Gemini（不验证，只配置）
+    if GEMINI_API_KEY:
+        try:
+            genai.configure(api_key=GEMINI_API_KEY)
+        except Exception as e:
+            print(f"⚠️ Gemini 配置失败: {str(e)}")
+    
+    # 初始化 Supabase（延迟验证）
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            # 不立即验证，只在需要时验证
+            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+            # 尝试一个简单的查询来验证连接
+            try:
+                supabase.table('fraud_cases').select('id').limit(1).execute()
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'invalid' in error_msg or '401' in error_msg or '403' in error_msg:
+                    print(f"⚠️ Supabase API Key 可能无效: {str(e)[:100]}")
+                    # 不退出，继续运行（可能只是权限问题）
+                else:
+                    print(f"⚠️ Supabase 连接测试失败: {str(e)[:100]}")
+        except Exception as e:
+            print(f"⚠️ Supabase 初始化失败: {str(e)[:100]}")
+            supabase = None
 
 # 监控白名单（.org 和 .gov 域名）
 monitored_domains: Set[str] = set()
@@ -406,6 +443,9 @@ def main():
     print("🌐 GIFIA v4.0 - The Living Scout (24/7 全球自动侦察)")
     print(f"⏰ 执行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)
+    
+    # 初始化客户端
+    init_clients()
     
     # 验证配置
     missing_keys = []
