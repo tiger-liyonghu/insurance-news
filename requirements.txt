@@ -1,0 +1,34 @@
+# GIFIA - 全球保险欺诈情报站依赖包 v2.0
+# Python 3.10+
+
+# Supabase 客户端（数据库）
+supabase==2.3.4
+
+# Google Gemini API（AI 文本提取 - The Analyst）
+google-generativeai==0.3.2
+
+# OpenAI API（质量检查 - The Critic）
+openai>=1.0.0
+
+# Tavily API（全球搜索 - The Scout）
+tavily-python==0.3.0
+
+# Streamlit（Web 展示）
+streamlit==1.31.0
+
+# HTTP 请求库（Tavily, Supabase, Jina Reader 需要）
+requests==2.31.0
+
+# Firecrawl - 深度网页抓取（The Researcher）
+firecrawl-py>=0.0.16
+
+# 日期时间处理
+python-dateutil==2.8.2
+
+# 注意：字符串相似度计算使用 Python 标准库 difflib.SequenceMatcher，无需安装额外包
+
+# Word 文档读取（用于种子案例提取和用户上传）
+python-docx>=1.1.0
+
+# PDF 文件读取（用于用户上传）
+PyPDF2>=3.0.0
