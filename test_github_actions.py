@@ -72,24 +72,9 @@ def check_environment():
     # 测试导入 agent_v4_living_scout（不初始化客户端）
     print("\n📄 检查脚本文件:")
     try:
-        # 临时移除环境变量，避免导入时初始化失败
-        import importlib
-        import sys
-        
-        # 保存原始环境变量
-        original_env = {}
-        for key in ['TAVILY_API_KEY', 'GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_KEY']:
-            original_env[key] = os.environ.get(key)
-        
-        # 尝试导入（即使 API key 无效也应该能导入）
+        # 尝试导入（即使 API key 无效也应该能导入，因为我们已经延迟初始化）
         import agent_v4_living_scout
         print("  ✅ agent_v4_living_scout.py: 可以导入")
-        
-        # 恢复环境变量
-        for key, value in original_env.items():
-            if value:
-                os.environ[key] = value
-                
     except Exception as e:
         print(f"  ❌ agent_v4_living_scout.py: 导入失败 - {str(e)}")
         errors.append(f"脚本导入失败: {str(e)}")
