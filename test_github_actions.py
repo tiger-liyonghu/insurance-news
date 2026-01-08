@@ -154,7 +154,8 @@ def check_environment():
         for i, warning in enumerate(warnings, 1):
             print(f"  {i}. {warning}")
         print("\n✅ 基本配置正确，但建议修复警告")
-        return 0
+        print("💡 警告不会阻止脚本运行，可以继续执行")
+        return 0  # 警告不阻止执行
     else:
         print("✅ 所有检查通过！环境配置正确")
         return 0

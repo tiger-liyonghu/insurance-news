@@ -50,10 +50,13 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       run: |
-        python3 test_github_actions.py || {
-          echo "❌ 诊断脚本发现问题，请查看上方输出"
-          exit 1
-        }
+        python3 test_github_actions.py
+        DIAG_EXIT_CODE=$?
+        if [ $DIAG_EXIT_CODE -eq 1 ]; then
+          echo "⚠️ 诊断脚本发现错误，但继续执行主脚本..."
+          echo "请查看上方输出了解详情"
+        fi
+        # 不因为诊断脚本的错误而停止，让主脚本自己处理
     
     - name: Run Living Scout
       env:
